@@ -1,8 +1,9 @@
 $vCenter = 192.168.7.10
 $admin = administrator@vsphere.local   
-$password = 
+$password = ConvertTo-SecureString -String "VMware1!" -AsPlainText -Force
 
-$Credential = Get-Credential
+$Credential = New-Object -TypeName "System.Management.Automation.PSCredential" -ArgumentList $User, $PWord
+
 $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Credential.UserName+':'+$Credential.GetNetworkCredential().Password))
 $head = @{
 'Authorization' = "Basic $auth"
