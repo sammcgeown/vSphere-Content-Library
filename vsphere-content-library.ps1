@@ -6,6 +6,9 @@ $password = ConvertTo-SecureString -String "VMware1!" -AsPlainText -Force
 $Content_Library = "Content-Library"
 $Item_Name = "VMware-NSX-Manager-6.3.3-6276725"
 $Folder_Name = "NSX_Test"
+$Host_Name = "192.168.7.1"
+$resourcepool_Name = "Resources"
+
 
 
 $Credential = New-Object -TypeName "System.Management.Automation.PSCredential" -ArgumentList $admin, $password
@@ -88,9 +91,7 @@ ForEach ($item in $items) {
 
 }
 
-
-
-# Get library items
+# Get Folder id
 $request = invoke-WebRequest -Uri "https://$($vCenter)/rest/vcenter/folder" -Method Get -Headers $session
 $Folders = (ConvertFrom-Json $request.Content).value
 ForEach ($folder in $Folders){
@@ -100,10 +101,31 @@ ForEach ($folder in $Folders){
     }
 }
 
-# Get library items
-#$request = invoke-WebRequest -Uri "https://$($vCenter)/rest/com/vmware/vcenter/ovf/library-item/id:$($NSX_ID)?~action=filter" -Method Post -Headers $session
+# Get host id
+$request = invoke-WebRequest -Uri "https://$($vCenter)/rest/vcenter/host" -Method Get -Headers $session
+$Hosts = (ConvertFrom-Json $request.Content).value
+ForEach ($targethost in $Hosts){
+    If ($targethost.name -eq $Host_Name){
+        write "Host ID: $($targethost.host)"
+        $Host_ID = $targethost.host
+    }
+}
 
-#$NSXOvfTemplate = (ConvertFrom-Json $request.Content).value
-#write-host "NSX Ovf config: $($NSXOvfTemplate)"
+# Get resourcepool id
+$request = invoke-WebRequest -Uri "https://$($vCenter)/rest/vcenter/resource-pool" -Method Get -Headers $session
+$ResourcePools = (ConvertFrom-Json $request.Content).value
+ForEach ($resourcepool in $ResourcePools){
+    If ($resourcepool.name -eq $resourcepool_Name){
+        write "Resource Pool ID: $($resourcepool.resource_pool)"
+        $ResourcePool_ID = $resourcepool.resource_pool
+    }
+}
+
+# Get library items
+$body = "{`"target`": {`"folder_id`": `"$($Folder_ID)`", `"host_id`": `"$($Host_ID)`", `"resource_pool_id`": `"$($ResourcePool_ID)`"} }"
+$request = invoke-WebRequest -Uri "https://$($vCenter)/rest/com/vmware/vcenter/ovf/library-item/id:$($NSX_ID)?~action=filter" -Method Post -Headers $session -Body $body -ContentType application/json
+
+$NSXOvfTemplate = (ConvertFrom-Json $request.Content).value
+write-host "NSX Ovf config: $($NSXOvfTemplate)"
 
 
